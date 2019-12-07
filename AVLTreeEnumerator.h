@@ -35,8 +35,12 @@ public:
 // Add your implementation below this line.
 template <typename T>
 AVLTreeEnumerator<T>::AVLTreeEnumerator(const AVLTree<T>* root, AVLTreeOrder order) {
-    if (root -> empty) {
-        throw new ExceptionEnumerationBeyondEnd;
+    if (root == nullptr) {
+        throw new ExceptionAVLTreeAccess;
+        
+    }
+    if (root -> getSize() == 0) {
+        throw new ExceptionAVLTreeAccess;
     }
     this -> order = order;
     buildTraversalStack(root);

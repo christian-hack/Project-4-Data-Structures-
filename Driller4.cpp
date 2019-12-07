@@ -30,16 +30,16 @@
 #include "AVLTreeOrder.h"
 
 using namespace std;
-HashTable<DrillingRecord>* treeToHashArray (ResizableArray<DrillingRecord>& array, AVLTree<DrillingRecord>& tree,HashTable<DrillingRecord>* hashTable, DrillingRecordComparator* drc, Hasher<DrillingRecord>* hasher) {
+HashTable<DrillingRecord>* treeToHashArray (ResizableArray<DrillingRecord>& array, AVLTree<DrillingRecord>* tree,HashTable<DrillingRecord>* hashTable, DrillingRecordComparator* drc, Hasher<DrillingRecord>* hasher) {
     array.clear();
     delete hashTable;
-    hashTable = new HashTable<DrillingRecord>(drc, hasher, tree.getSize());
+    hashTable = new HashTable<DrillingRecord>(drc, hasher, tree -> getSize());
     //OULinkedListEnumerator<DrillingRecord> listEnumerator = linkedList.enumerator();
-    AVLTreeEnumerator<DrillingRecord> treeEnumerator = tree.enumerator();
-    if (tree.getSize() != 0) {
-        while (treeEnumerator.hasNext()) {
-            hashTable->insert(treeEnumerator.peek());
-            array.add(treeEnumerator.next());
+    if (tree -> getSize() != 0) {
+        AVLTreeEnumerator<DrillingRecord>* treeEnumerator = new AVLTreeEnumerator<DrillingRecord>(tree, AVLTreeOrder::inorder);
+        while (treeEnumerator -> hasNext()) {
+            hashTable->insert(treeEnumerator -> peek());
+            array.add(treeEnumerator -> next());
         }
     }
     return hashTable;
@@ -298,7 +298,7 @@ void readFile(ResizableArray<DrillingRecord>& array, bool& dataWasEntered, int& 
         dataWasEntered = false;
     }
 }
-void outputDataManipulation(int validCount, ResizableArray<DrillingRecord>* array, int totalLines, int recordsInMemory) {
+void outputDataManipulation(int validCount, ResizableArray<DrillingRecord>* array, int totalLines, int recordsInMemory, AVLTree<DrillingRecord>* tree) {
     string input;
     cout << "Enter output file name: ";
     getline(cin, input);
@@ -309,15 +309,15 @@ void outputDataManipulation(int validCount, ResizableArray<DrillingRecord>* arra
                 for (unsigned int i = 0; i <= array->getSize()-1; ++i) {
                     ofs << array->get(i) << endl;
                 }
-                ofs << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << recordsInMemory << endl;
+                ofs << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << tree -> getSize() << endl;
             }
             else {
-                ofs << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << recordsInMemory << endl;
+                ofs << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << tree -> getSize() << endl;
             }
         }
         else {
             cout << "File is not available." << endl;
-            outputDataManipulation(validCount, array, totalLines, recordsInMemory);
+            outputDataManipulation(validCount, array, totalLines, recordsInMemory, tree);
         }
     }
     else {
@@ -326,10 +326,10 @@ void outputDataManipulation(int validCount, ResizableArray<DrillingRecord>* arra
             for (unsigned int i = 0; i <= array->getSize()-1; ++i) {
                 cout << array->get(i) << endl;
             }
-            cout << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << recordsInMemory << endl;
+            cout << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << tree -> getSize() << endl;
         }
         else {
-            cout << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << recordsInMemory << endl;
+            cout << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << tree -> getSize() << endl;
         }
     }
 }
@@ -573,6 +573,75 @@ void hashTableDataManipulation(DrillingRecordComparator drc, HashTable<DrillingR
         cout << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << recordsInMemory << endl;
     }
 }
+void traversalOutput (AVLTree<DrillingRecord>* tree, int validCount, int totalLines, string traversal) {
+    string input;
+    cout << "Enter output file name: ";
+    getline(cin, input);
+    // can I set the order up here?
+    //AVLTreeEnumerator<DrillingRecord> treeEnumerator = tree -> enumerator();
+    if (traversal == "pre") {
+        AVLTreeEnumerator<DrillingRecord>* preTreeEnumerator = new AVLTreeEnumerator<DrillingRecord>(tree, AVLTreeOrder::preorder);
+        if (input.size() != 0) {
+            //output preorder
+            ofstream ofs(input);
+            if (tree -> getSize() != 0) {
+                while (preTreeEnumerator -> hasNext()) {
+                    ofs << preTreeEnumerator -> next() << endl;
+                }
+            }
+            ofs << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << tree -> getSize() << endl;
+        }
+        else {
+            //cout preorder
+            while (preTreeEnumerator -> hasNext()) {
+                cout << preTreeEnumerator -> next() << endl;
+            }
+            cout << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << tree -> getSize() << endl;
+        }
+        
+    }
+    else if (traversal == "in") {
+        AVLTreeEnumerator<DrillingRecord>* inTreeEnumerator = new AVLTreeEnumerator<DrillingRecord>(tree, AVLTreeOrder::inorder);
+        if (input.size() != 0) {
+            ofstream ofs(input);
+            if (tree -> getSize() != 0) {
+                while (inTreeEnumerator -> hasNext()) {
+                    ofs << inTreeEnumerator -> next() << endl;
+                }
+            }
+            ofs << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << tree -> getSize() << endl;
+        }
+        else {
+            //cout inorder
+            while (inTreeEnumerator -> hasNext()) {
+                cout << inTreeEnumerator -> next() << endl;
+            }
+            cout << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << tree -> getSize() << endl;
+        }
+        
+    }
+    else { // traversal == "post"
+        AVLTreeEnumerator<DrillingRecord>* postTreeEnumerator = new AVLTreeEnumerator<DrillingRecord>(tree, AVLTreeOrder::postorder);
+        if (input.size() != 0) {
+            //output postorder
+            ofstream ofs(input);
+            if (tree -> getSize() != 0) {
+                while (postTreeEnumerator -> hasNext()) {
+                    ofs << postTreeEnumerator -> next() << endl;
+                }
+            }
+            ofs << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << tree -> getSize() << endl;
+        }
+        else {
+            //cout postorder
+            while (postTreeEnumerator -> hasNext()) {
+                cout << postTreeEnumerator -> next() << endl;
+            }
+            cout << "Data lines read: " << totalLines << "; Valid Drilling records read: " << validCount << "; Drilling records in memory: " << tree -> getSize() << endl;
+        }
+        
+    }
+}
 int main() {
     string input = " ";
     int lineCount = 0;
@@ -589,15 +658,14 @@ int main() {
     AVLTree<DrillingRecord>* tree = new AVLTree<DrillingRecord>(drc);
     readFile(*resizedArray, dataWasEntered, lineCount, date, validRecords, validRecordsInMem, *tree, timestamps);
     HashTable<DrillingRecord>* hashTable = new HashTable<DrillingRecord>(drc, hasher, tree->getSize());
-    hashTable = treeToHashArray(*resizedArray, *tree, hashTable, drc, hasher);
+    hashTable = treeToHashArray(*resizedArray, tree, hashTable, drc, hasher);
     if (dataWasEntered == true) {
-        
         while (input != "q") {
-            hashTable = treeToHashArray(*resizedArray, *tree, hashTable, drc, hasher);
+            hashTable = treeToHashArray(*resizedArray, tree, hashTable, drc, hasher);
             cout << "Enter (o)utput, (s)ort, (f)ind, (m)erge, (p)urge, (h)ash table, (pre)order, (in)order, (post)order, or (q)uit: ";
             getline(cin, input);
             if (input == "o") {
-                outputDataManipulation(validRecords, resizedArray, lineCount, validRecordsInMem);
+                outputDataManipulation(validRecords, resizedArray, lineCount, validRecordsInMem, tree);
             }
             if (input == "s") {
                 sortingDataManipulation(*resizedArray, sortedCol);
@@ -614,71 +682,22 @@ int main() {
             if (input == "h") {
                 hashTableDataManipulation(*drc, hashTable, lineCount, validRecords, validRecordsInMem);
             }
-            if (input == "q") {
-                cout << "Thanks for using Driller." << endl;
-            }
             if (input == "pre") {
-                
+                traversalOutput(tree, validRecords, lineCount, input);
             }
             if (input == "in") {
-                
+                traversalOutput(tree, validRecords, lineCount, input);
             }
             if (input == "post") {
-                
+                traversalOutput(tree, validRecords, lineCount, input);
+            }
+            if (input == "q") {
+                cout << "Thanks for using Driller." << endl;
             }
         }
     }
     else {
         return 0;
     }
-    /*
-    DrillingRecordComparator* drc = new DrillingRecordComparator(1);
-    AVLTree<DrillingRecord>* tree = new AVLTree<DrillingRecord>(drc);
-    DrillingRecord dr0;
-    dr0.setString("02", 1);
-    DrillingRecord dr1;
-    dr1.setString("04", 1);
-    DrillingRecord dr2;
-    dr2.setString("06", 1);
-    DrillingRecord dr3;
-    dr3.setString("08", 1);
-    DrillingRecord dr4;
-    dr4.setString("10", 1);
-    DrillingRecord dr5;
-    dr5.setString("01", 1);
-    DrillingRecord dr6;
-    dr6.setString("03", 1);
-    DrillingRecord dr7;
-    dr7.setString("05", 1);
-    DrillingRecord dr8;
-    dr8.setString("07", 1);
-    DrillingRecord dr9;
-    dr9.setString("09", 1);
-    DrillingRecord dr10;
-    dr10.setString("11", 1);
-    DrillingRecord dr11;
-    dr11.setString("12", 1);
-    DrillingRecord dr12;
-    dr12.setString("13", 1);
-    DrillingRecord dr13;
-    dr13.setString("14", 1);
-    DrillingRecord dr14;
-    dr14.setString("15", 1);
-    tree -> insert(dr0);
-    tree -> insert(dr1);
-    tree -> insert(dr2);
-    tree -> insert(dr3);
-    tree -> insert(dr4);
-    tree -> insert(dr5);
-    tree -> insert(dr6);
-    tree -> insert(dr7);
-    tree -> insert(dr8);
-    tree -> insert(dr9);
-    tree -> insert(dr10);
-    tree -> insert(dr11);
-    tree -> insert(dr12);
-    tree -> insert(dr13);
-    tree -> insert(dr14);
-     */
     return 0;
 }

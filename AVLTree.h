@@ -66,50 +66,61 @@ AVLTree<T>::AVLTree(Comparator<T>* comparator) {
 }
 
 template <typename T>
-void AVLTree<T>::zig() {
-    T root = data;
-    int oldDiff = diff;
-    int oldLeftDiff = right -> diff;
-    if (!empty || (left != nullptr || !left -> empty)) {
-        AVLTree<T>* leftChild = left;
-        left = leftChild -> left;
-        leftChild -> left = leftChild -> right;
-        leftChild -> right = right;
-        right = leftChild;
-        data = leftChild -> data;
-        leftChild -> data = root;
-        if (oldDiff >= 0) {
-            leftChild -> diff = oldDiff - oldLeftDiff + 1;
-            diff = oldDiff + 2;
-        }
-        else {
-            diff = oldLeftDiff + 1;
-            leftChild -> diff = oldDiff + 1;
-        }
+void AVLTree<T>::zig()
+{
+    if (left == NULL) {  // no left, no way to zig
+        return;
+    }
+    // keep track of diff of node and left for changes
+    int gdiff = diff;
+    int pdiff = left->diff;
+    // modify the tree
+    AVLTree<T>* olnr = left;  // olnr is "old left, new right"
+    left = olnr->left;
+    olnr->left = olnr->right;
+    olnr->right = right;
+    right = olnr;
+    // note that the modifications kept the node itself in place, so we need to swap its data with its olnr's
+    T tempData = data;
+    data = olnr->data;
+    olnr->data = tempData;
+    // update the diff fields for node and new right
+    if (pdiff < 0) {  // if imbalance was outside left heavy (left-left violation)
+        diff = gdiff + 2;
+        right->diff = gdiff - pdiff + 1;
+    }
+    else {  // otherwise imbalance was inside left heavy (left-right violation)
+        diff = pdiff + 1;
+        right->diff = gdiff + 1;
     }
 }
 
 template <typename T>
 void AVLTree<T>::zag() {
-    T root = data;
-    int oldDiff = diff;
-    int oldRightDiff = right -> diff;
-    if (!empty || (right != nullptr || !right -> empty)) {
-        AVLTree<T>* rightChild = right;
-        right = rightChild -> right;
-        rightChild -> right = rightChild -> left;
-        rightChild -> left = left;
-        left = rightChild;
-        data = rightChild -> data;
-        rightChild -> data = root;
-        if (oldDiff >= 0) {
-            rightChild -> diff = oldDiff - oldRightDiff - 1;
-            diff = oldDiff - 2;
-        }
-        else {
-            diff = oldRightDiff - 1;
-            rightChild -> diff = oldDiff - 1;
-        }
+    if (right == NULL) {  // no right, no way to zig
+        return;
+    }
+    // keep track of diff of node and right for changes
+    int gdiff = diff;
+    int pdiff = right->diff;
+    // modify the tree
+    AVLTree<T>* ornl = right;  // ornl is "old right, new left"
+    right = ornl->right;
+    ornl->right = ornl->left;
+    ornl->left = left;
+    left = ornl;
+    // note that the modifications kept the node itself in place, so we need toswap its data with its ornl's
+    T tempData = data;
+    data = ornl->data;
+    ornl->data = tempData;
+    // update the diff fields for node and new left
+    if (pdiff > 0) {  // if imbalance was outside right heavy (right-right violation)
+        diff = gdiff - 2;
+        left->diff = gdiff - pdiff - 1;
+    }
+    else {  // otherwise imbalance was inside right heavy (right-left violation)
+        diff = pdiff - 1;
+        left->diff = gdiff - 1;
     }
 }
 
@@ -136,10 +147,10 @@ void AVLTree<T>::rebalance() {
     else if ((diff < 0) && (left -> diff > 0)) {
         zigzag();
     }
-    else if ((diff > 0) && (left -> diff < 0)) {
+    else if ((diff > 0) && (right -> diff < 0)) {
         zagzig();
     }
-    else if ((diff > 0) && (left -> diff >= 0)) {
+    else if ((diff > 0) && (right -> diff >= 0)) {
         zag();
     }
 }
@@ -173,6 +184,7 @@ bool AVLTree<T>::insert(const T item) {
     int olddiff = 0;
     if (comparator -> compare(data, item) == 1) {
         if (left -> empty) {
+            
             if (!left -> insert(item)) {
                 return false;
             }
@@ -187,12 +199,14 @@ bool AVLTree<T>::insert(const T item) {
                 return false;
             }
             else {
+                if ((olddiff != left -> diff) && (left -> diff != 0)) {
+                    diff--;
+                }
                 ++size;
             }
+            
         }
-        if ((olddiff != left -> diff) && (left -> diff != 0)) {
-            diff--;
-        }
+        
     }
     else {
         if (right -> empty) {
@@ -210,12 +224,13 @@ bool AVLTree<T>::insert(const T item) {
                 return false;
             }
             else {
+                if ((olddiff != right -> diff) && (right -> diff != 0)) {
+                    diff++;
+                }
                 size++;
             }
         }
-        if ((olddiff != right -> diff) && (right -> diff != 0)) {
-            diff++;
-        }
+        
     }
     rebalance();
     return true;
@@ -240,75 +255,120 @@ bool AVLTree<T>::replace(const T item) {
 
 template <typename T>
 bool AVLTree<T>::remove(const T item) {
-    int olddiff;
-    /*
-    if (empty) {
-        throw new ExceptionAVLTreeAccess;
+    if (!this -> contains(item)) {
+        return false;
     }
-     */ 
+    int olddiff;
     if (comparator -> compare(item, data) == 1) {
-        olddiff = left -> diff;
-        right -> remove(item);
-        if ((right -> empty) || ((right -> diff != olddiff) && (right -> diff != 0))) {
-            diff--;
+        if (right != nullptr) {
+            olddiff = right -> diff;
+            if (right -> remove(item)) {
+                size--;
+                if (right->empty || (right -> diff == 0 && olddiff != right -> diff)) {
+                    diff--;
+                }
+            }
+        }
+        else {
+            return false;
         }
     }
     else if (comparator -> compare(item, data) == -1) {
-        olddiff = right -> diff;
-        left -> remove(item);
-        if ((left -> empty) || ((left -> diff != olddiff) && (left -> diff != 0))) {
-            diff++;
+        if (left != nullptr) {
+            olddiff = left -> diff;
+            if (left -> remove(item)) {
+                size--;
+                if (left->empty || (left -> diff == 0 && olddiff != left ->diff)) {
+                    diff++;
+                }
+            }
+        }
+        else {
+            return false;
         }
     }
     else {
-        empty = true;
-    }
-    
-    if (right -> empty) {
-        AVLTree<T>* oldleft = left;
-        right = nullptr;
-        /*
-         if (data -> empty) {
-         empty = true;
-         return true;
-         }
-         */
-        // added
-        empty = true;
-        right = left;
-        oldleft = nullptr;
-        delete oldleft;
-        diff = 0;
-    }
-    else if (left -> empty) {
-        AVLTree<T>* oldright = right;
-        left = nullptr;
-        /*
-        if (data -> empty) {
+        if (left == nullptr && right == nullptr) {
             empty = true;
-            return true;
+            size--;
         }
-         */
-        // added
-        empty = true;
-        left = right;
-        oldright = nullptr;
-        delete oldright;
-        diff = 0;
+        else if (left == nullptr) {
+            if (right -> empty) {
+                // que es varamos aqui
+                // do nothing?
+            }
+            else {
+                data = right -> data;
+                delete right;
+                right = nullptr;
+                diff--;
+                size--;
+            }
+        }
+        else if (right == nullptr) {
+            if (left -> empty) {
+                // que es varamos aqui
+                // do nothing?
+            }
+            else {
+                data = left -> data;
+                delete left;
+                left = nullptr;
+                diff++;
+                size--;
+            }
+        }
+        else {
+            if (left -> empty && right -> empty) {
+                empty = true;
+                size--;
+            }
+            // If only left is empty: -- > case above
+            else if ((!right -> empty) && left -> empty) {
+                data = right -> data;
+                delete right;
+                right = nullptr;
+                diff--;
+                size--;
+            }
+            // If only right is empty: -- > case abover
+            else if ((!left -> empty) && right -> empty) {
+                data = left -> data;
+                delete left;
+                left = nullptr;
+                diff++;
+                size--;
+            }
+            // Both not empty
+            else {
+                olddiff = right -> diff;
+                AVLTree<T>* succ = right;
+                while (succ -> left != nullptr) {
+                    succ = succ -> left;
+                }
+                data = succ -> data;
+                right -> remove(succ -> data);
+                
+                
+                if (((right -> diff != olddiff) && (right -> diff == 0))) {
+                    diff--;
+                }
+            }
+        }
     }
-    else {
-        AVLTree<T>* succ = right;
-        while (!succ -> left -> empty) {
-            succ = succ -> left;
-        }
-        //delete data;
-        data = succ -> data;
-        olddiff = right -> diff;
-        right -> remove(succ -> data);
-        if ((right -> empty) || ((right -> diff != olddiff) && (right -> diff == 0))) {
-            diff--;
+    if (right != nullptr) {
+        if (right -> empty) {
+            delete right;
+            right = nullptr;
         }
     }
+    if (left != nullptr) {
+        if (left -> empty) {
+            delete left;
+            left = nullptr;
+        }
+    }
+    rebalance();
     return true;
 }
 
